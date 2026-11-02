@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Plan high-density and ultra-high-density apple orchards: enter a plot, get a to-scale layout of trees, trellis poles, anchors and hail-net cross wires, with a marking-out table and PDF export.">
+<title>Orchard Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F3F6F0;--card:#FFFFFF;--ink:#14211A;--ink2:#43534A;--muted:#6C7B71;--line:#DCE3D5;--soft:#EAF0E4;
+  --land:#EDF4E5;--edge:#3D5A45;--tree:#2B6A3C;--wire:#9AA59C;--anchor:#D23A2A;--pole:#1B2620;--accent:#1E5A34;--accent-ink:#FFFFFF;
+  --warn:#9A5B00;--ok:#1E7A40;--err:#B42318;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#0E1611;--card:#151F19;--ink:#E5EDE1;--ink2:#B7C4B6;--muted:#8B998E;--line:#26342B;--soft:#1B2820;
+  --land:#1A2A1F;--edge:#8DBF98;--tree:#7CC98E;--wire:#56665B;--anchor:#F0604E;--pole:#E5EDE1;--accent:#7CC98E;--accent-ink:#0E1611;
+  --warn:#E0A23A;--ok:#7CC98E;--err:#F0604E}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0E1611;--card:#151F19;--ink:#E5EDE1;--ink2:#B7C4B6;--muted:#8B998E;--line:#26342B;--soft:#1B2820;
+  --land:#1A2A1F;--edge:#8DBF98;--tree:#7CC98E;--wire:#56665B;--anchor:#F0604E;--pole:#E5EDE1;--accent:#7CC98E;--accent-ink:#0E1611;
+  --warn:#E0A23A;--ok:#7CC98E;--err:#F0604E}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font:400 14.5px/1.5 var(--sans)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1440px;margin-inline:auto;padding-inline:16px;padding-block:14px 40px;display:grid;gap:14px}
+/* top bar */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:700 17px/1 var(--sans);letter-spacing:-.01em;margin-right:6px}
+.brand svg{width:28px;height:28px}
+.name{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px}
+.name input{flex:1;min-width:0;font:600 16px/1.2 var(--sans);border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 9px}
+.name input:hover{border-color:var(--line)}
+.name input:focus{border-color:var(--accent);background:var(--card);outline:none}
+.status{font:500 12px/1 var(--mono);color:var(--muted);white-space:nowrap}
+.status.ok{color:var(--ok)}.status.err{color:var(--err)}.status.warn{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:8px 13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn.danger{color:var(--err)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+/* main grid */
+.main{display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.tabs button{all:unset;cursor:pointer;text-align:center;padding:12px 6px;font-weight:600;font-size:13.5px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pbody{padding:16px;display:grid;gap:14px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--soft);padding:4px;border-radius:10px}
+.seg button{all:unset;cursor:pointer;text-align:center;padding:8px 4px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.seg button:focus-visible{outline:2px solid var(--accent)}
+.lbl{font:600 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.f{display:grid;gap:5px}
+.f.full{grid-column:1/-1}
+.f label{font-size:12.5px;color:var(--ink2);font-weight:500}
+.f input,.f select,.mini{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 9px;width:100%;min-width:0}
+.f input:focus,.f select:focus,.mini:focus{outline:none;border-color:var(--accent)}
+.unit{position:relative}.unit input{padding-right:30px}.unit span{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+.check input{width:16px;height:16px;accent-color:var(--accent)}
+.sides{display:grid;gap:6px}
+.side{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1.1fr) minmax(0,.9fr) 26px;gap:5px;align-items:center}
+.side .n{font:600 11px var(--mono);color:var(--muted)}
+.side.head{font:600 10.5px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.mini{padding:6px 7px;font-size:13px}
+.x{all:unset;cursor:pointer;width:24px;height:24px;display:grid;place-items:center;border-radius:6px;color:var(--muted)}
+.x:hover{background:var(--soft);color:var(--err)}
+.closing{font-size:12.5px;color:var(--ink2);background:var(--soft);border-radius:8px;padding:8px 10px}
+.closing b{font-family:var(--mono)}
+.presets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.preset{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:9px;display:grid;gap:6px;justify-items:center;text-align:center;font-size:12.5px;color:var(--ink2)}
+.preset svg{width:64px;height:44px}
+.preset[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--ink)}
+.preset:focus-visible{outline:2px solid var(--accent)}
+.profiles{display:flex;flex-wrap:wrap;gap:6px}
+.chipb{all:unset;cursor:pointer;font:500 12px/1 var(--mono);padding:7px 9px;border-radius:999px;border:1px solid var(--line);background:var(--bg)}
+.chipb:hover{border-color:var(--accent)}
+.divider{height:1px;background:var(--line);margin:2px 0}
+/* saved */
+.saved{display:grid;gap:8px}
+.sv{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.sv.cur{border-color:var(--accent)}
+.sv b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sv .meta{font:400 12px var(--mono);color:var(--muted);grid-column:1}
+.sv .acts{grid-row:1/3;grid-column:2;display:flex;gap:6px}
+.empty{font-size:13px;color:var(--muted);text-align:center;padding:16px 8px;border:1px dashed var(--line);border-radius:10px}
+/* results */
+.res{display:grid;gap:14px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.stats div{background:var(--card);padding:12px 14px;display:grid;gap:2px}
+.stats b{font:600 22px/1.15 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stats span{font-size:12px;color:var(--muted)}
+.stats .hi b{color:var(--accent)}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.canvas{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;gap:10px}
+.cbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{display:inline-block}
+.drawing{position:relative;overflow:auto;border-radius:8px;background:var(--bg);min-height:280px}
+.drawing svg{display:block;width:100%;height:auto;max-height:78vh;touch-action:none}
+.drawing.edit svg{cursor:crosshair}
+.busy{position:absolute;inset:auto 10px 10px auto;font:500 12px var(--mono);color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+.warnbox{font-size:13px;color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:8px;padding:8px 10px}
+.cands{display:flex;gap:6px;flex-wrap:wrap}
+.cand{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:12.5px;display:grid;gap:2px;background:var(--card)}
+.cand b{font:600 15px/1 var(--sans);font-variant-numeric:tabular-nums}
+.cand[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cand:focus-visible{outline:2px solid var(--accent)}
+.cand.best b::after{content:" ★";color:var(--accent);font-size:12px}
+.tablecard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font:600 10.5px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.pl{font:400 12px var(--mono);white-space:normal;min-width:180px;color:var(--ink2)}
+tfoot td{font-weight:600;border-bottom:0}
+.exports{display:flex;gap:8px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+.pts{display:grid;gap:5px;max-height:300px;overflow:auto}
+.pt{display:grid;grid-template-columns:22px 1fr 1fr 1fr 26px;gap:5px;align-items:center}
+.pt.sel .n{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><g stroke="var(--accent-ink)" stroke-width="1.6" stroke-linecap="round"><path d="M9 25V8M16 25V8M23 25V8"/></g><circle cx="9" cy="13" r="2.2" fill="var(--anchor)"/><circle cx="16" cy="19" r="2.2" fill="var(--anchor)"/><circle cx="23" cy="12" r="2.2" fill="var(--anchor)"/></svg>Orchard Planner</div>
+    <div class="name"><input id="plotName" aria-label="Plot name" value="Example · four-sided plot"><span class="status" id="saveStatus">Not saved</span></div>
+    <button class="btn" id="btnNew" type="button">New plot</button>
+    <button class="btn" id="btnSaveAs" type="button">Save as copy</button>
+    <button class="btn primary" id="btnSave" type="button">Save</button>
+  </header>
+
+  <div class="main">
+    <aside class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-shape" aria-selected="true" data-tab="shape">Land shape</button>
+        <button role="tab" id="tab-spacing" aria-selected="false" data-tab="spacing">Spacing</button>
+        <button role="tab" id="tab-saved" aria-selected="false" data-tab="saved">Saved plots</button>
+      </div>
+
+      <!-- SHAPE -->
+      <div class="pbody" id="pane-shape" role="tabpanel" aria-labelledby="tab-shape">
+        <div class="seg" id="modeSeg" role="group" aria-label="How to enter the shape">
+          <button type="button" data-mode="preset" aria-pressed="true">Ready-made</button>
+          <button type="button" data-mode="walk" aria-pressed="false">Walk the boundary</button>
+          <button type="button" data-mode="draw" aria-pressed="false">Draw on grid</button>
+        </div>
+
+        <div id="m-preset" class="mpane">
+          <div class="presets" id="presetList"></div>
+          <div class="fields" id="presetFields" style="margin-top:12px"></div>
+          <label class="check" style="margin-top:10px"><input type="checkbox" id="pMirror"> Mirror left ↔ right</label>
+        </div>
+
+        <div id="m-walk" class="mpane" hidden>
+          <p class="hint">Start at any corner and walk round the plot. Enter each side's length and the direction you walk. Curve: how far the middle of a curved side bulges out (+) or in (−) from a straight line. The last side closes the shape automatically.</p>
+          <div class="sides" id="walkList"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" type="button" id="walkAdd">+ Add side</button><button class="btn sm" type="button" id="walkFromShape">Load current shape</button></div>
+          <div class="closing" id="walkClose"></div>
+        </div>
+
+        <div id="m-draw" class="mpane" hidden>
+          <p class="hint">Click on the drawing to add a corner, drag corners to move them (snaps to 0.5 ft), or type exact positions below. Positions are in feet from the bottom-left corner.</p>
+          <div class="pts" id="ptList"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" type="button" id="ptDel">Delete selected corner</button><button class="btn sm" type="button" id="ptClear">Start a fresh outline</button></div>
+        </div>
+      </div>
+
+      <!-- SPACING -->
+      <div class="pbody" id="pane-spacing" role="tabpanel" aria-labelledby="tab-spacing" hidden>
+        <div class="f"><span class="lbl">Quick presets</span>
+          <div class="profiles">
+            <button class="chipb" type="button" data-prof="uhd93">M9 UHD 9 × 3.25 ft</button>
+            <button class="chipb" type="button" data-prof="uhd103">M9 UHD 10 × 3 ft</button>
+            <button class="chipb" type="button" data-prof="hd108">MM111 HD 10 × 8 ft</button>
+            <button class="chipb" type="button" data-prof="hd88">MM111 HD 8 × 8 ft</button>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="f"><label for="sRow">Row to row</label><div class="unit"><input id="sRow" type="number" step="0.25" min="2"><span>ft</span></div></div>
+          <div class="f"><label for="sPlant">Plant to plant</label><div class="unit"><input id="sPlant" type="number" step="0.25" min="1"><span>ft</span></div></div>
+          <div class="f"><label for="sSide">Side gap</label><div class="unit"><input id="sSide" type="number" step="0.5" min="0"><span>ft</span></div></div>
+          <div class="f"><label for="sTiller">Tiller gap (far end)</label><div class="unit"><input id="sTiller" type="number" step="0.5" min="0"><span>ft</span></div></div>
+          <div class="f"><label for="sStart">Gap at start end</label><div class="unit"><input id="sStart" type="number" step="0.5" min="0"><span>ft</span></div></div>
+          <div class="f"><label for="sPole">Max pole spacing</label><div class="unit"><input id="sPole" type="number" step="1" min="5"><span>ft</span></div></div>
+          <div class="f"><label for="sAnchors">Anchors</label><select id="sAnchors"><option value="both">Both ends</option><option value="start">Start end only</option><option value="none">None</option></select></div>
+          <div class="f"><label for="sAGap">Anchor to end pole</label><div class="unit"><input id="sAGap" type="number" step="0.5" min="1"><span>ft</span></div></div>
+          <label class="check f full"><input type="checkbox" id="sTreeGap"> Plant one tree in each anchor gap</label>
+        </div>
+        <div class="divider"></div>
+        <div class="fields">
+          <div class="f full"><label for="sOrient">Row direction</label>
+            <select id="sOrient"><option value="auto">Best fit (most trees)</option><option value="90">Up and down</option><option value="0">Across</option><option value="custom">Custom angle</option></select></div>
+          <div class="f" id="fAngle" hidden><label for="sAngle">Angle from “across”</label><div class="unit"><input id="sAngle" type="number" step="1" min="0" max="179"><span>°</span></div></div>
+          <label class="check f full"><input type="checkbox" id="sFlip"> Start rows from the other end</label>
+        </div>
+        <p class="hint">Middle poles sit centred between two trees, evenly spaced, and line up across all rows for hail-net cross wiring. Distances are in feet; 1 kanal = 5,445 sq ft.</p>
+      </div>
+
+      <!-- SAVED -->
+      <div class="pbody" id="pane-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
+        <p class="hint" id="savedNote">Plots are saved in this browser. Use Export to back them up or move them to another phone or computer, and Import to load them.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" type="button" id="btnExportAll">Export all plots</button><label class="btn sm" for="importFile" style="cursor:pointer">Import plots</label><input id="importFile" type="file" accept=".json,application/json" hidden></div>
+        <div class="saved" id="savedList"><div class="empty">Loading saved plots…</div></div>
+      </div>
+    </aside>
+
+    <section class="res">
+      <div class="stats" id="stats"></div>
+      <div class="canvas">
+        <div class="cbar">
+          <div class="legend"><span><i style="width:10px;height:10px;border-radius:50%;background:var(--tree)"></i>Tree</span><span><i style="width:9px;height:9px;background:var(--anchor)"></i>Anchor</span><span><i style="width:3px;height:12px;background:var(--pole)"></i>Pole</span><span><i style="width:18px;height:2px;background:var(--wire)"></i>Trellis wire</span><span><i style="width:18px;border-top:1.5px dashed var(--pole);opacity:.7"></i>Cross wire</span></div>
+          <div class="exports" id="exportBar">
+            <button class="btn sm" type="button" id="exPdf">Download PDF</button>
+            <button class="btn sm" type="button" id="exSvg">SVG</button>
+            <button class="btn sm" type="button" id="exCsv">CSV</button>
+          </div>
+        </div>
+        <div id="warn" class="warnbox" hidden></div>
+        <div class="drawing" id="drawing"></div>
+        <div><span class="lbl">Row directions compared</span><div class="cands" id="cands" style="margin-top:6px"></div></div>
+      </div>
+      <div class="tablecard">
+        <div class="cbar"><span class="lbl">Marking-out table</span><span class="hint" id="tableHint"></span></div>
+        <div class="tw" id="rowTable"></div>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var KANAL=5445;
+var DEG=Math.PI/180;
+var round=function(v,d){var m=Math.pow(10,d==null?2:d);return Math.round(v*m)/m};
+var fmt=function(v){var r=round(v,3);return (Math.abs(r-Math.round(r))<1e-9?Math.round(r):r).toString()};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('on')},2600)}
+
+/* ------------------------------------------------------------------ state */
+var DEFAULT_SETTINGS={row:9,plant:3.25,side:4,tiller:6,start:0,pole:30,anchors:'both',agap:5,treeGap:true,orient:'auto',angle:45,flip:false};
+var PRESETS={
+  rect:{name:'Rectangle',fields:[['W','Width',90],['H','Height',80]]},
+  four:{name:'Four-sided',fields:[['W','Bottom',90],['HL','Left side',87],['HR','Right side',78],['T','Top',90]]},
+  step:{name:'Block + strip',fields:[['W','Bottom width',39],['H1','Left side',66],['H','Right side (total)',189],['Ws','Strip width at base',19.5],['Wt','Strip width at top',6]]},
+  round:{name:'Rounded corner',fields:[['W','Bottom',90],['HL','Left side',84],['T','Straight top',42],['R','Straight right side',48]]}
+};
+var state={
+  id:null,name:'Example · four-sided plot',mode:'preset',
+  preset:{type:'four',p:{W:90,HL:87,HR:78,T:90},mirror:false},
+  walk:null, verts:null,
+  settings:Object.assign({},DEFAULT_SETTINGS),
+  chosen:null
+};
+
+/* ------------------------------------------------------------------ geometry */
+var presetWarn='';
+function presetVerts(type,p,mirror){
+  var v;presetWarn='';
+  if(type==='rect') v=[[0,0],[p.W,0],[p.W,p.H],[0,p.H]].map(function(a){return {x:a[0],y:a[1],b:0}});
+  else if(type==='four'){
+    // bottom runs flat, left side stands straight up; the top-right corner sits where the right side and the top meet
+    var tr=[p.W,p.HR];
+    if(p.T>0){var ax=0,ay=p.HL,bx=p.W,by=0,d=Math.hypot(bx-ax,by-ay),r1=p.T,r2=p.HR;
+      if(d>0&&d<=r1+r2+1e-9&&d>=Math.abs(r1-r2)-1e-9){
+        var aa=(r1*r1-r2*r2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,r1*r1-aa*aa)),mx=ax+aa*(bx-ax)/d,my=ay+aa*(by-ay)/d;
+        var c1=[mx+hh*(by-ay)/d,my-hh*(bx-ax)/d],c2=[mx-hh*(by-ay)/d,my+hh*(bx-ax)/d];
+        tr=(c1[0]+c1[1]>c2[0]+c2[1])?c1:c2;
+      } else presetWarn='These four sides can’t join up: the top and right side are too short or too long for the other two. The right side is drawn straight up instead.';
+    }
+    v=[[0,0],[p.W,0],[round(tr[0],3),round(tr[1],3)],[0,p.HL]].map(function(a){return {x:a[0],y:a[1],b:0}});
+  }
+  else if(type==='step'){
+    var Ws=Math.min(p.Ws,p.W), Wt=Math.min(p.Wt,p.W);
+    v=[[0,0],[p.W,0],[p.W,p.H],[p.W-Wt,p.H],[p.W-Ws,p.H1],[0,p.H1]].map(function(a){return {x:a[0],y:a[1],b:0}});
+  } else if(type==='round'){
+    var a=Math.max(p.W-p.T,0.1), b=Math.max(p.HL-p.R,0.1);
+    var sag=(Math.SQRT2-1)/Math.sqrt(1/(a*a)+1/(b*b)); // how far the quarter-ellipse corner bulges past its chord
+    v=[{x:0,y:0,b:0},{x:p.W,y:0,b:0},{x:p.W,y:p.R,b:round(sag,2)},{x:p.T,y:p.HL,b:0},{x:0,y:p.HL,b:0}];
+  }
+  if(mirror){var W=Math.max.apply(null,v.map(function(q){return q.x}));
+    v=v.map(function(q){return {x:W-q.x,y:q.y,b:q.b}});
+    // reversing order keeps bulge attached to the same edge
+    var r=[];for(var i=v.length-1;i>=0;i--){var nx=v[(i-1+v.length)%v.length];r.push({x:v[i].x,y:v[i].y,b:nx.b})}
+    v=r;}
+  return v;
+}
+function bearingVec(b){return [Math.sin(b*DEG),Math.cos(b*DEG)]}
+function walkVerts(walk){
+  var x=0,y=0,v=[];
+  walk.forEach(function(s){v.push({x:x,y:y,b:+s.b||0});var d=bearingVec(+s.dir||0);x+=d[0]*(+s.len||0);y+=d[1]*(+s.len||0)});
+  // closing side from the end point back to the start
+  var close={len:Math.hypot(x,y),dir:((Math.atan2(-x,-y)/DEG)+360)%360};
+  if(close.len>0.25) v.push({x:x,y:y,b:0});
+  return {verts:normalize(v),close:close};
+}
+function vertsToWalk(v){
+  var w=[];
+  for(var i=0;i<v.length;i++){var a=v[i],b=v[(i+1)%v.length];var dx=b.x-a.x,dy=b.y-a.y;
+    w.push({len:round(Math.hypot(dx,dy),3),dir:round(((Math.atan2(dx,dy)/DEG)+360)%360,2),b:a.b||0});}
+  return w;
+}
+function normalize(v){
+  if(!v.length) return v;
+  var minx=Math.min.apply(null,v.map(function(q){return q.x})),miny=Math.min.apply(null,v.map(function(q){return q.y}));
+  return v.map(function(q){return {x:round(q.x-minx,2),y:round(q.y-miny,2),b:q.b||0}});
+}
+function signedArea(P){var s=0;for(var i=0;i<P.length;i++){var a=P[i],b=P[(i+1)%P.length];s+=a[0]*b[1]-b[0]*a[1]}return s/2}
+function expand(v){
+  // returns {P:[[x,y]...], edges:[{i0,i1,len,curved,apex}]}
+  var base=v.map(function(q){return [q.x,q.y]});
+  var ccw=signedArea(base)>=0;
+  var P=[],edges=[];
+  for(var i=0;i<v.length;i++){
+    var p=v[i],q=v[(i+1)%v.length];
+    var dx=q.x-p.x,dy=q.y-p.y,c=Math.hypot(dx,dy);
+    var start=P.length;P.push([p.x,p.y]);
+    if(p.b && Math.abs(p.b)>0.05 && c>0.1){
+      var s=p.b;
+      var nx=ccw?dy/c:-dy/c, ny=ccw?-dx/c:dx/c; // outward normal
+      var as=Math.abs(s), R=(c*c/4+as*as)/(2*as);
+      var sg=s>0?1:-1;
+      var mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
+      var cx=mx-nx*sg*(R-as), cy=my-ny*sg*(R-as);
+      var a0=Math.atan2(p.y-cy,p.x-cx), a1=Math.atan2(q.y-cy,q.x-cx);
+      var apx=mx+nx*sg*as, apy=my+ny*sg*as, ab=Math.atan2(apy-cy,apx-cx);
+      function nrm(t){while(t<0)t+=2*Math.PI;while(t>=2*Math.PI)t-=2*Math.PI;return t}
+      var sw=nrm(a1-a0), sb=nrm(ab-a0); if(sb>sw) sw=sw-2*Math.PI;
+      var n=Math.max(8,Math.ceil(Math.abs(sw)*R/1.5));
+      for(var k=1;k<n;k++){var t=a0+sw*k/n;P.push([cx+R*Math.cos(t),cy+R*Math.sin(t)])}
+      edges.push({curved:true,len:Math.abs(sw)*R,apex:[apx,apy],a:[p.x,p.y],b:[q.x,q.y],n:[nx*sg,ny*sg]});
+    } else edges.push({curved:false,len:c,apex:[(p.x+q.x)/2,(p.y+q.y)/2],a:[p.x,p.y],b:[q.x,q.y],n:[ccw?dy/(c||1):-dy/(c||1),ccw?-dx/(c||1):dx/(c||1)]});
+  }
+  return {P:P,edges:edges,area:Math.abs(signedArea(P))};
+}
+function selfIntersects(P){
+  var n=P.length;
+  function inter(a,b,c,d){function o(p,q,r){return (q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0])}
+    var d1=o(c,d,a),d2=o(c,d,b),d3=o(a,b,c),d4=o(a,b,d);return ((d1>1e-9&&d2<-1e-9)||(d1<-1e-9&&d2>1e-9))&&((d3>1e-9&&d4<-1e-9)||(d3<-1e-9&&d4>1e-9))}
+  for(var i=0;i<n;i++)for(var j=i+2;j<n;j++){if(i===0&&j===n-1)continue;if(inter(P[i],P[(i+1)%n],P[j],P[(j+1)%n]))return true}
+  return false;
+}
+
+/* ------------------------------------------------------------------ layout engine */
+function scan(P,y){
+  var xs=[],n=P.length;
+  for(var i=0;i<n;i++){var a=P[i],b=P[(i+1)%n];
+    if((a[1]<=y&&y<b[1])||(b[1]<=y&&y<a[1])) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1]));}
+  xs.sort(function(p,q){return p-q});
+  var out=[];for(var k=0;k+1<xs.length;k+=2) out.push([xs[k],xs[k+1]]);
+  return out;
+}
+function inter(A,B){var o=[];A.forEach(function(a){B.forEach(function(b){var lo=Math.max(a[0],b[0]),hi=Math.min(a[1],b[1]);if(hi>lo+1e-9)o.push([lo,hi])})});return o}
+function band(P,c,side){
+  var N=17,lo=c-side+1e-3,hi=c+side-1e-3;
+  if(side<=0) return scan(P,c);
+  var I=scan(P,lo);
+  for(var i=1;i<N&&I.length;i++) I=inter(I,scan(P,lo+(hi-lo)*i/(N-1)));
+  return I;
+}
+function rot(P,th){var c=Math.cos(th),s=Math.sin(th);return P.map(function(p){return [p[0]*c+p[1]*s,-p[0]*s+p[1]*c]})}
+function rowFromInterval(a,b,ph,S){
+  var pl=S.plant,h=pl/2,res={};
+  var k0,k1,first,last,sa=null,ea=null;
+  if(S.anchors!=='none'){k0=Math.ceil((a+S.start+S.agap-ph)/pl-1e-9);sa=ph+k0*pl-S.agap;first=S.treeGap?ph+k0*pl-h:ph+k0*pl+h}
+  else{k0=Math.ceil((a+S.start-h-ph)/pl-1e-9);first=ph+k0*pl+h}
+  if(S.anchors==='both'){k1=Math.floor((b-S.tiller-S.agap-ph)/pl+1e-9);ea=ph+k1*pl+S.agap;last=S.treeGap?ph+k1*pl+h:ph+k1*pl-h}
+  else{k1=Math.floor((b-S.tiller-ph)/pl+1e-9);last=ph+k1*pl-h}
+  if(k1<=k0) return null;
+  var n=Math.round((last-first)/pl)+1;
+  if(n<2) return null;
+  return {a:a,b:b,k0:k0,k1:k1,first:first,last:last,n:n,sa:sa,ea:ea};
+}
+function layoutAngle(Pw,thDeg,S){
+  var th=thDeg*DEG,P=rot(Pw,th);
+  var vs=P.map(function(p){return p[1]}),vmin=Math.min.apply(null,vs),vmax=Math.max.apply(null,vs);
+  var best=null,stepC=Math.min(0.5,S.row/8),nC=Math.max(1,Math.round(S.row/stepC)),nP=26;
+  for(var ci=0;ci<nC;ci++){
+    var c0=ci*stepC,bands=[];
+    for(var c=vmin+S.side+c0;c<=vmax-S.side+1e-9;c+=S.row) bands.push([c,band(P,c,S.side)]);
+    for(var pi=0;pi<nP;pi++){
+      var ph=pi*S.plant/nP,tot=0,rows=[];
+      for(var r=0;r<bands.length;r++){var iv=bands[r][1];
+        for(var j=0;j<iv.length;j++){var rr=rowFromInterval(iv[j][0],iv[j][1],ph,S);if(rr){rr.c=bands[r][0];rows.push(rr);tot+=rr.n}}}
+      if(!best||tot>best.total) best={total:tot,rows:rows,ph:ph,c0:c0};
+    }
+  }
+  best.theta=thDeg;
+  // poles: shared cross-lines every `per` tree gaps from the lowest start pole, each centred between two trees
+  var per=Math.max(1,Math.floor(S.pole/S.plant+1e-9));
+  var K0=best.rows.length?Math.min.apply(null,best.rows.map(function(r){return r.k0})):0;
+  var poles=0;
+  best.rows.forEach(function(r){var ks=[r.k0];for(var k=r.k0+1;k<r.k1;k++){if(((k-K0)%per+per)%per===0)ks.push(k)}ks.push(r.k1);r.ks=ks;poles+=ks.length});
+  best.poles=poles;best.per=per;
+  best.anchors=best.rows.length*(S.anchors==='both'?2:S.anchors==='start'?1:0);
+  // number rows from the left (rows running up/down) or from the bottom (rows running across)
+  var cs=Math.cos(th),sn=Math.sin(th),vertical=Math.abs(sn)>Math.abs(cs);
+  var key=function(r){return vertical?-r.c*sn:r.c*cs};
+  best.rows.sort(function(p,q){return key(p)-key(q)});
+  best.vInc=best.rows.length<2?true:best.rows[1].c>=best.rows[0].c;
+  return best;
+}
+function candidateAngles(ex){
+  var list=[[90,'Up and down'],[270,'Up and down, from the top'],[0,'Across'],[180,'Across, from the right']];
+  ex.edges.forEach(function(e,i){if(e.curved||e.len<15)return;
+    var a=(Math.atan2(e.b[1]-e.a[1],e.b[0]-e.a[0])/DEG+360)%180;
+    [a,a+180].forEach(function(t,j){t=round(t%360,1);
+      if(!list.some(function(L){var d=Math.abs(((L[0]-t)%360+540)%360-180);return d<1.5})) list.push([t,'Along side '+(i+1)+(j?' (reversed)':'')])});
+  });
+  return list;
+}
+
+/* ------------------------------------------------------------------ build current shape */
+function currentVerts(){
+  if(state.mode==='preset') return presetVerts(state.preset.type,state.preset.p,state.preset.mirror);
+  if(state.mode==='walk') return walkVerts(state.walk).verts;
+  return state.verts||[];
+}
+
+/* ------------------------------------------------------------------ rendering: drawing */
+var LIGHT={land:'#EDF4E5',edge:'#3D5A45',tree:'#2B6A3C',wire:'#9AA59C',anchor:'#D23A2A',pole:'#1B2620',ink:'#14211A',muted:'#6C7B71',bg:'#FFFFFF',sel:'#1E5A34'};
+function themeColors(){var cs=getComputedStyle(document.documentElement);var g=function(n){return cs.getPropertyValue(n).trim()};
+  return {land:g('--land'),edge:g('--edge'),tree:g('--tree'),wire:g('--wire'),anchor:g('--anchor'),pole:g('--pole'),ink:g('--ink'),muted:g('--muted'),bg:g('--card'),sel:g('--accent')}}
+var view=null; // transform used by the editor
+function buildSVG(ex,L,S,C,opts){
+  opts=opts||{};
+  var P=ex.P, xs=P.map(function(p){return p[0]}), ys=P.map(function(p){return p[1]});
+  var minx=Math.min.apply(null,xs),maxx=Math.max.apply(null,xs),miny=Math.min.apply(null,ys),maxy=Math.max.apply(null,ys);
+  if(opts.edit){minx=Math.min(minx,0)-10;miny=Math.min(miny,0)-10;maxx=Math.max(maxx+20,100);maxy=Math.max(maxy+20,100)}
+  var w=Math.max(maxx-minx,10),h=Math.max(maxy-miny,10);
+  var s=Math.min(720/w,(opts.maxH||900)/h,9);
+  var pad={l:70,r:90,t:40,b:64};
+  var VW=w*s+pad.l+pad.r,VH=h*s+pad.t+pad.b;
+  var X=function(x){return pad.l+(x-minx)*s},Y=function(y){return pad.t+(maxy-y)*s};
+  view={X:X,Y:Y,s:s,minx:minx,maxy:maxy,pad:pad,VW:VW,VH:VH};
+  var o=['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+VW.toFixed(0)+' '+VH.toFixed(0)+'" width="'+VW.toFixed(0)+'" height="'+VH.toFixed(0)+'" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" role="img" aria-label="Orchard layout drawn to scale">'];
+  o.push('<rect x="0" y="0" width="'+VW.toFixed(0)+'" height="'+VH.toFixed(0)+'" fill="'+C.bg+'"/>');
+  if(opts.edit){for(var gx=Math.ceil(minx/10)*10;gx<=maxx;gx+=10)o.push('<line x1="'+X(gx).toFixed(1)+'" y1="'+Y(miny).toFixed(1)+'" x2="'+X(gx).toFixed(1)+'" y2="'+Y(maxy).toFixed(1)+'" stroke="'+C.wire+'" stroke-opacity="'+(gx%50?0.25:0.55)+'" stroke-width="1"/>');
+    for(var gy=Math.ceil(miny/10)*10;gy<=maxy;gy+=10)o.push('<line x1="'+X(minx).toFixed(1)+'" y1="'+Y(gy).toFixed(1)+'" x2="'+X(maxx).toFixed(1)+'" y2="'+Y(gy).toFixed(1)+'" stroke="'+C.wire+'" stroke-opacity="'+(gy%50?0.25:0.55)+'" stroke-width="1"/>');}
+  if(P.length>=3) o.push('<polygon points="'+P.map(function(p){return X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)}).join(' ')+'" fill="'+C.land+'" stroke="'+C.edge+'" stroke-width="2" stroke-linejoin="round"/>');
+  else if(P.length===2) o.push('<line x1="'+X(P[0][0])+'" y1="'+Y(P[0][1])+'" x2="'+X(P[1][0])+'" y2="'+Y(P[1][1])+'" stroke="'+C.edge+'" stroke-width="2"/>');
+  if(L&&L.rows.length){
+    var th=L.theta*DEG,cs=Math.cos(th),sn=Math.sin(th);
+    var W2=function(u,c){return [u*cs-c*sn,u*sn+c*cs]};
+    var pl=S.plant,ph=L.ph,h=pl/2;
+    // cross wires
+    var groups={};
+    L.rows.forEach(function(r){r.ks.slice(1,-1).forEach(function(k){(groups[k]=groups[k]||[]).push(W2(ph+k*pl,r.c))})});
+    Object.keys(groups).forEach(function(k){var g=groups[k];if(g.length<2)return;
+      var nx=-sn,ny=cs;g.sort(function(a,b){return (a[0]*nx+a[1]*ny)-(b[0]*nx+b[1]*ny)});
+      o.push('<line x1="'+X(g[0][0]).toFixed(1)+'" y1="'+Y(g[0][1]).toFixed(1)+'" x2="'+X(g[g.length-1][0]).toFixed(1)+'" y2="'+Y(g[g.length-1][1]).toFixed(1)+'" stroke="'+C.pole+'" stroke-opacity=".5" stroke-width="1" stroke-dasharray="4 3"/>')});
+    var tr=Math.max(1.2,Math.min(Math.min(pl*0.36,1.1)*s,6));
+    L.rows.forEach(function(r,i){
+      var u0=r.sa!=null?r.sa:ph+r.k0*pl, u1=r.ea!=null?r.ea:ph+r.k1*pl;
+      var p0=W2(u0,r.c),p1=W2(u1,r.c);
+      o.push('<line x1="'+X(p0[0]).toFixed(1)+'" y1="'+Y(p0[1]).toFixed(1)+'" x2="'+X(p1[0]).toFixed(1)+'" y2="'+Y(p1[1]).toFixed(1)+'" stroke="'+C.wire+'" stroke-width="1.2"/>');
+      for(var t=0;t<r.n;t++){var p=W2(r.first+t*pl,r.c);o.push('<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="'+tr.toFixed(1)+'" fill="'+C.tree+'"/>')}
+      var pk=Math.max(5,Math.min(1.6*s,9));
+      r.ks.forEach(function(k){var p=W2(ph+k*pl,r.c);var px=X(p[0]),py=Y(p[1]);var ex2=-sn*pk,ey2=-cs*pk; // perpendicular in screen space
+        o.push('<line x1="'+(px-ex2).toFixed(1)+'" y1="'+(py-ey2).toFixed(1)+'" x2="'+(px+ex2).toFixed(1)+'" y2="'+(py+ey2).toFixed(1)+'" stroke="'+C.pole+'" stroke-width="2.4" stroke-linecap="square"/>')});
+      [r.sa,r.ea].forEach(function(u){if(u==null)return;var p=W2(u,r.c);o.push('<rect x="'+(X(p[0])-3.5).toFixed(1)+'" y="'+(Y(p[1])-3.5).toFixed(1)+'" width="7" height="7" fill="'+C.anchor+'"/>')});
+      // label just beyond the start of the row
+      var lp=W2(u0-Math.max(3,14/s),r.c);
+      o.push('<text x="'+X(lp[0]).toFixed(1)+'" y="'+(Y(lp[1])+4).toFixed(1)+'" font-size="10.5" font-family="IBM Plex Mono, monospace" font-weight="600" fill="'+C.ink+'" text-anchor="middle" paint-order="stroke" stroke="'+C.bg+'" stroke-width="3">R'+(i+1)+'</text>');
+    });
+  }
+  // side labels
+  if(P.length>=3) ex.edges.forEach(function(e,i){
+    if(e.len<0.5)return;
+    var off=Math.abs(e.n[0])>0.6?30:(e.n[1]<-0.6?32:18); var lx=X(e.apex[0])+e.n[0]*off, ly=Y(e.apex[1])-e.n[1]*off;
+    var t=(e.curved?'≈':'')+fmt(round(e.len,1))+' ft';
+    var anchor=Math.abs(e.n[0])>0.6?(e.n[0]>0?'start':'end'):'middle';
+    o.push('<text x="'+lx.toFixed(1)+'" y="'+(ly+4).toFixed(1)+'" font-size="12" font-weight="600" fill="'+C.ink+'" text-anchor="'+anchor+'" paint-order="stroke" stroke="'+C.bg+'" stroke-width="4" stroke-linejoin="round">'+t+(opts.sideNums?' · '+(i+1):'')+'</text>');
+  });
+  // scale bar
+  var sb=10*s, bx=pad.l, by=VH-14;
+  o.push('<line x1="'+bx+'" y1="'+by+'" x2="'+(bx+sb).toFixed(1)+'" y2="'+by+'" stroke="'+C.ink+'" stroke-width="2.5"/><text x="'+(bx+sb+6).toFixed(1)+'" y="'+(by+4)+'" font-size="11" fill="'+C.muted+'" font-family="IBM Plex Mono, monospace">10 ft</text>');
+  if(opts.edit&&opts.verts){opts.verts.forEach(function(q,i){
+    o.push('<circle data-pt="'+i+'" cx="'+X(q.x).toFixed(1)+'" cy="'+Y(q.y).toFixed(1)+'" r="'+(i===opts.sel?8:6.5)+'" fill="'+(i===opts.sel?C.sel:C.bg)+'" stroke="'+C.sel+'" stroke-width="2.5" style="cursor:grab"/>');
+    o.push('<text x="'+(X(q.x)+10).toFixed(1)+'" y="'+(Y(q.y)-9).toFixed(1)+'" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="'+C.muted+'">'+(i+1)+'</text>')})}
+  o.push('</svg>');
+  return o.join('');
+}
+
+/* ------------------------------------------------------------------ compute + render all */
+var current={ex:null,L:null,cands:[],S:null};
+function compute(){
+  var v=currentVerts(), ex=expand(v), S=Object.assign({},state.settings);
+  ['row','plant','side','tiller','start','pole','agap','angle'].forEach(function(k){S[k]=+S[k]});
+  current.ex=ex;current.S=S;current.v=v;
+  var warn=[];if(state.mode==='preset'&&presetWarn)warn.push(presetWarn);
+  if(v.length<3||ex.area<10){current.L=null;current.cands=[];renderAll(['Add at least three corners to make a closed plot.']);return}
+  if(selfIntersects(ex.P)) warn.push('The boundary crosses itself. Check the side lengths and directions.');
+  if(!(S.row>0&&S.plant>0)){current.L=null;renderAll(['Row and plant spacing must be above zero.']);return}
+  var cands=[];
+  if(S.orient==='auto'){
+    candidateAngles(ex).forEach(function(c){var L=layoutAngle(ex.P,c[0],S);cands.push({theta:c[0],label:c[1],L:L})});
+  } else {
+    var base=S.orient==='custom'?S.angle:+S.orient;
+    [[base,S.orient==='custom'?'Custom '+fmt(base)+'°':(base===90?'Up and down':'Across')],[base+180,'Same, from the other end']].forEach(function(c){cands.push({theta:c[0]%360,label:c[1],L:layoutAngle(ex.P,c[0]%360,S)})});
+  }
+  cands.sort(function(a,b){return b.L.total-a.L.total});
+  var pick=null;
+  if(state.chosen!=null) pick=cands.find(function(c){return Math.abs(c.theta-state.chosen)<0.05});
+  if(!pick){ if(S.orient!=='auto'){pick=cands.find(function(c){return Math.abs(c.theta-((S.orient==='custom'?S.angle:+S.orient)+(S.flip?180:0))%360)<0.05})||cands[0]} else pick=cands[0] }
+  current.cands=cands;current.L=pick?pick.L:null;current.pickTheta=pick?pick.theta:null;
+  renderAll(warn);
+}
+var computeTimer=null;
+function schedule(){clearTimeout(computeTimer);computeTimer=setTimeout(compute,120)}
+
+function renderAll(warn){
+  var ex=current.ex,L=current.L,S=current.S;
+  var w=$('#warn');if(warn&&warn.length){w.hidden=false;w.textContent=warn.join(' ')}else w.hidden=true;
+  // stats
+  var area=ex?ex.area:0;
+  var st=[['Trees',L?L.total:0,1],['Rows',L?L.rows.length:0],['Poles',L?L.poles:0],['Anchors',L?L.anchors:0],
+    ['Area',Math.round(area).toLocaleString('en-IN')+' sq ft'],['Kanal',round(area/KANAL,2).toFixed(2)],['Trees per kanal',area?Math.round((L?L.total:0)/(area/KANAL)):0],
+    ['Trellis wire per strand',L?Math.round(L.rows.reduce(function(a,r){var u0=r.sa!=null?r.sa:L.ph+r.k0*S.plant,u1=r.ea!=null?r.ea:L.ph+r.k1*S.plant;return a+(u1-u0)},0)).toLocaleString('en-IN')+' ft':'0 ft']];
+  $('#stats').innerHTML=st.map(function(x){return '<div class="'+(x[2]?'hi':'')+'"><b>'+esc(typeof x[1]==='number'?x[1].toLocaleString('en-IN'):x[1])+'</b><span>'+esc(x[0])+'</span></div>'}).join('');
+  // drawing
+  var d=$('#drawing');
+  d.classList.toggle('edit',state.mode==='draw');
+  d.innerHTML=ex?buildSVG(ex,L,S,themeColors(),{edit:state.mode==='draw',verts:state.mode==='draw'?state.verts:null,sel:drawSel,sideNums:state.mode!=='preset'}):'';
+  // candidates
+  $('#cands').innerHTML=current.cands.map(function(c,i){return '<button type="button" class="cand'+(i===0?' best':'')+'" aria-pressed="'+(Math.abs(c.theta-current.pickTheta)<0.05)+'" data-theta="'+c.theta+'"><b>'+c.L.total+'</b><span>'+esc(c.label)+'</span></button>'}).join('')||'<span class="hint">Nothing to compare yet.</span>';
+  // table
+  renderTable();
+}
+function rowsForTable(){
+  var L=current.L,S=current.S;if(!L)return [];
+  var pl=S.plant,ph=L.ph,th=L.theta*DEG;
+  var vs=rot(current.ex.P,th).map(function(p){return p[1]}),vmin=Math.min.apply(null,vs),vmax=Math.max.apply(null,vs);
+  return L.rows.map(function(r,i){
+    var base=r.a;
+    return {row:'R'+(i+1),offset:L.vInc?r.c-vmin:vmax-r.c,len:((r.ea!=null?r.ea:ph+r.k1*pl)-(r.sa!=null?r.sa:ph+r.k0*pl)),
+      sa:r.sa!=null?r.sa-base:null,first:r.first-base,last:r.last-base,ea:r.ea!=null?r.ea-base:null,
+      poles:r.ks.map(function(k){return ph+k*pl-base}),n:r.n};
+  });
+}
+function renderTable(){
+  var rows=rowsForTable(),L=current.L;
+  if(!rows.length){$('#rowTable').innerHTML='<div class="empty">No rows fit with these settings.</div>';$('#tableHint').textContent='';return}
+  $('#tableHint').textContent='Feet. Row offset is measured from the plot edge the rows run along; positions along a row from where it meets the boundary at its start end.';
+  var hasA=rows.some(function(r){return r.sa!=null}),hasE=rows.some(function(r){return r.ea!=null});
+  var h='<table><thead><tr><th>Row</th><th>Offset</th><th>Length</th>'+(hasA?'<th>Start anchor</th>':'')+'<th>First tree</th><th>Last tree</th>'+(hasE?'<th>End anchor</th>':'')+'<th>Poles at</th><th>Trees</th></tr></thead><tbody>';
+  rows.forEach(function(r){h+='<tr><td>'+r.row+'</td><td>'+fmt(r.offset)+'</td><td>'+fmt(round(r.len,2))+'</td>'+(hasA?'<td>'+(r.sa!=null?fmt(r.sa):'–')+'</td>':'')+'<td>'+fmt(r.first)+'</td><td>'+fmt(r.last)+'</td>'+(hasE?'<td>'+(r.ea!=null?fmt(r.ea):'–')+'</td>':'')+'<td class="pl">'+r.poles.map(fmt).join(', ')+'</td><td>'+r.n+'</td></tr>'});
+  h+='</tbody><tfoot><tr><td colspan="'+(5+(hasA?1:0)+(hasE?1:0))+'">Total · '+L.poles+' poles · '+L.anchors+' anchors</td><td>'+L.total+'</td></tr></tfoot></table>';
+  $('#rowTable').innerHTML=h;
+}
+
+/* ------------------------------------------------------------------ shape editors */
+function presetIcon(t){var m={rect:'M6 38H58V6H6Z',four:'M6 38H58V14L6 6Z',step:'M10 40H54V4H46L38 22H10Z',round:'M6 38H58V22Q58 6 40 6H6Z'};return '<svg viewBox="0 0 64 44" aria-hidden="true"><path d="'+m[t]+'" fill="var(--land)" stroke="var(--edge)" stroke-width="2"/></svg>'}
+function renderPresetEditor(){
+  $('#presetList').innerHTML=Object.keys(PRESETS).map(function(k){return '<button type="button" class="preset" data-preset="'+k+'" aria-pressed="'+(state.preset.type===k)+'">'+presetIcon(k)+'<span>'+PRESETS[k].name+'</span></button>'}).join('');
+  var def=PRESETS[state.preset.type];
+  $('#presetFields').innerHTML=def.fields.map(function(f){var v=state.preset.p[f[0]];if(v==null){v=f[2];state.preset.p[f[0]]=v}
+    return '<div class="f"><label for="pf-'+f[0]+'">'+f[1]+'</label><div class="unit"><input id="pf-'+f[0]+'" data-pf="'+f[0]+'" type="number" step="0.5" min="0" value="'+v+'"><span>ft</span></div></div>'}).join('');
+  $('#pMirror').checked=!!state.preset.mirror;
+}
+var DIRS=[[0,'N'],[45,'NE'],[90,'E'],[135,'SE'],[180,'S'],[225,'SW'],[270,'W'],[315,'NW']];
+function renderWalkEditor(){
+  var w=state.walk;
+  var h='<div class="side head"><span>#</span><span>Length</span><span>Direction</span><span>Curve</span><span></span></div>';
+  w.forEach(function(s,i){
+    var named=DIRS.find(function(d){return Math.abs(d[0]-s.dir)<0.01});
+    h+='<div class="side"><span class="n">'+(i+1)+'</span>'+
+      '<input class="mini" type="number" step="0.5" min="0" aria-label="Side '+(i+1)+' length in feet" data-w="len" data-i="'+i+'" value="'+s.len+'">'+
+      '<select class="mini" aria-label="Side '+(i+1)+' direction" data-w="dirsel" data-i="'+i+'">'+DIRS.map(function(d){return '<option value="'+d[0]+'"'+(named&&named[0]===d[0]?' selected':'')+'>'+d[1]+' ('+d[0]+'°)</option>'}).join('')+'<option value="custom"'+(named?'':' selected')+'>'+(named?'Other…':fmt(s.dir)+'°')+'</option></select>'+
+      '<input class="mini" type="number" step="0.5" aria-label="Side '+(i+1)+' curve in feet" data-w="b" data-i="'+i+'" value="'+(s.b||0)+'">'+
+      '<button class="x" type="button" aria-label="Remove side '+(i+1)+'" data-wdel="'+i+'">×</button></div>';
+    if(!named) h+='<div class="side"><span></span><span class="hint">Bearing</span><input class="mini" type="number" step="1" min="0" max="359.9" aria-label="Side '+(i+1)+' bearing in degrees" data-w="dir" data-i="'+i+'" value="'+s.dir+'"><span></span><span></span></div>';
+  });
+  $('#walkList').innerHTML=h;
+  var r=walkVerts(w);
+  $('#walkClose').innerHTML=r.close.len<0.25?'The walk ends where it started: the shape closes exactly.':'Closing side '+(w.length+1)+': <b>'+fmt(round(r.close.len,1))+' ft</b> at <b>'+fmt(round(r.close.dir,1))+'°</b> back to the start.';
+}
+var drawSel=-1;
+function renderDrawEditor(){
+  var v=state.verts||[];
+  $('#ptList').innerHTML='<div class="pt side head"><span>#</span><span>Across (x)</span><span>Up (y)</span><span>Curve to next</span><span></span></div>'+
+    v.map(function(q,i){return '<div class="pt'+(i===drawSel?' sel':'')+'"><span class="n">'+(i+1)+'</span><input class="mini" type="number" step="0.5" data-d="x" data-i="'+i+'" aria-label="Corner '+(i+1)+' x" value="'+q.x+'"><input class="mini" type="number" step="0.5" data-d="y" data-i="'+i+'" aria-label="Corner '+(i+1)+' y" value="'+q.y+'"><input class="mini" type="number" step="0.5" data-d="b" data-i="'+i+'" aria-label="Corner '+(i+1)+' curve" value="'+(q.b||0)+'"><button class="x" type="button" data-ddel="'+i+'" aria-label="Remove corner '+(i+1)+'">×</button></div>'}).join('');
+}
+function setMode(m){
+  var v=currentVerts();
+  if(m==='walk'&&state.mode!=='walk') state.walk=closeWalk(v);
+  if(m==='draw'&&state.mode!=='draw') state.verts=v.map(function(q){return {x:q.x,y:q.y,b:q.b||0}});
+  state.mode=m;state.chosen=null;
+  document.querySelectorAll('#modeSeg button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.mode===m)});
+  ['preset','walk','draw'].forEach(function(k){$('#m-'+k).hidden=k!==m});
+  if(m==='preset')renderPresetEditor();if(m==='walk')renderWalkEditor();if(m==='draw'){drawSel=-1;renderDrawEditor()}
+  markDirty();compute();
+}
+function closeWalk(v){ // walk the polygon fully except the final closing side
+  if(v.length<2) return [];
+  return vertsToWalk(v);
+}
+
+/* ------------------------------------------------------------------ settings editor */
+var SMAP={sRow:'row',sPlant:'plant',sSide:'side',sTiller:'tiller',sStart:'start',sPole:'pole',sAGap:'agap',sAngle:'angle'};
+function renderSettings(){
+  var S=state.settings;
+  Object.keys(SMAP).forEach(function(id){$('#'+id).value=S[SMAP[id]]});
+  $('#sAnchors').value=S.anchors;$('#sTreeGap').checked=!!S.treeGap;$('#sOrient').value=S.orient;$('#sFlip').checked=!!S.flip;
+  $('#fAngle').hidden=S.orient!=='custom';
+  $('#sAGap').disabled=S.anchors==='none';$('#sTreeGap').disabled=S.anchors==='none';
+}
+var PROFILES={uhd93:{row:9,plant:3.25},uhd103:{row:10,plant:3},hd108:{row:10,plant:8},hd88:{row:8,plant:8}};
+
+/* ------------------------------------------------------------------ events */
+document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
+  document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+  ['shape','spacing','saved'].forEach(function(k){$('#pane-'+k).hidden=k!==b.dataset.tab});
+})});
+$('#modeSeg').addEventListener('click',function(e){var b=e.target.closest('button');if(b)setMode(b.dataset.mode)});
+$('#presetList').addEventListener('click',function(e){var b=e.target.closest('[data-preset]');if(!b)return;state.preset.type=b.dataset.preset;state.preset.p={};state.chosen=null;renderPresetEditor();markDirty();compute()});
+$('#presetFields').addEventListener('input',function(e){var k=e.target.dataset.pf;if(!k)return;state.preset.p[k]=+e.target.value||0;state.chosen=null;markDirty();schedule()});
+$('#pMirror').addEventListener('change',function(e){state.preset.mirror=e.target.checked;state.chosen=null;markDirty();compute()});
+$('#walkList').addEventListener('input',function(e){var t=e.target,i=+t.dataset.i,k=t.dataset.w;if(!k)return;
+  if(k==='dirsel'){if(t.value==='custom'){state.walk[i].dir=(state.walk[i].dir+1)%360}else state.walk[i].dir=+t.value;renderWalkEditor()}
+  else state.walk[i][k]=+t.value||0;
+  state.chosen=null;markDirty();
+  if(k!=='dirsel'){var r=walkVerts(state.walk);$('#walkClose').innerHTML=r.close.len<0.25?'The walk ends where it started: the shape closes exactly.':'Closing side '+(state.walk.length+1)+': <b>'+fmt(round(r.close.len,1))+' ft</b> at <b>'+fmt(round(r.close.dir,1))+'°</b> back to the start.'}
+  schedule()});
+$('#walkList').addEventListener('click',function(e){var b=e.target.closest('[data-wdel]');if(!b)return;state.walk.splice(+b.dataset.wdel,1);renderWalkEditor();markDirty();compute()});
+$('#walkAdd').addEventListener('click',function(){var last=state.walk[state.walk.length-1];state.walk.push({len:20,dir:last?(last.dir+90)%360:90,b:0});renderWalkEditor();markDirty();compute()});
+$('#walkFromShape').addEventListener('click',function(){var v=state.mode==='walk'?walkVerts(state.walk).verts:currentVerts();state.walk=closeWalk(v);renderWalkEditor();compute()});
+$('#ptList').addEventListener('input',function(e){var t=e.target,i=+t.dataset.i,k=t.dataset.d;if(!k)return;state.verts[i][k]=+t.value||0;state.chosen=null;markDirty();schedule()});
+$('#ptList').addEventListener('click',function(e){var b=e.target.closest('[data-ddel]');if(!b)return;state.verts.splice(+b.dataset.ddel,1);drawSel=-1;renderDrawEditor();markDirty();compute()});
+$('#ptDel').addEventListener('click',function(){if(drawSel<0){toast('Select a corner on the drawing first.');return}state.verts.splice(drawSel,1);drawSel=-1;renderDrawEditor();markDirty();compute()});
+$('#ptClear').addEventListener('click',function(){state.verts=[];drawSel=-1;renderDrawEditor();markDirty();compute();toast('Click on the grid to place the first corner.')});
+Object.keys(SMAP).forEach(function(id){$('#'+id).addEventListener('input',function(e){state.settings[SMAP[id]]=+e.target.value;state.chosen=null;markDirty();schedule()})});
+$('#sAnchors').addEventListener('change',function(e){state.settings.anchors=e.target.value;renderSettings();markDirty();compute()});
+$('#sTreeGap').addEventListener('change',function(e){state.settings.treeGap=e.target.checked;markDirty();compute()});
+$('#sOrient').addEventListener('change',function(e){state.settings.orient=e.target.value;state.chosen=null;renderSettings();markDirty();compute()});
+$('#sFlip').addEventListener('change',function(e){state.settings.flip=e.target.checked;state.chosen=null;markDirty();compute()});
+document.querySelectorAll('[data-prof]').forEach(function(b){b.addEventListener('click',function(){Object.assign(state.settings,PROFILES[b.dataset.prof]);renderSettings();state.chosen=null;markDirty();compute();toast('Spacing set to '+b.textContent)})});
+$('#cands').addEventListener('click',function(e){var b=e.target.closest('[data-theta]');if(!b)return;state.chosen=+b.dataset.theta;markDirty();compute()});
+$('#plotName').addEventListener('input',function(e){state.name=e.target.value;markDirty()});
+
+/* draw-mode pointer editing */
+var drag=null;
+function svgPoint(evt){var svg=$('#drawing svg');if(!svg||!view)return null;var pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;var m=svg.getScreenCTM();if(!m)return null;var p=pt.matrixTransform(m.inverse());
+  return {x:Math.round(((p.x-view.pad.l)/view.s+view.minx)*2)/2,y:Math.round((view.maxy-(p.y-view.pad.t)/view.s)*2)/2}}
+$('#drawing').addEventListener('pointerdown',function(e){
+  if(state.mode!=='draw')return;
+  var h=e.target.closest('[data-pt]');
+  if(h){drag={i:+h.dataset.pt,moved:false};drawSel=drag.i;e.preventDefault();try{e.target.setPointerCapture(e.pointerId)}catch(_){}
+    renderDrawEditor();return}
+  var p=svgPoint(e);if(!p)return;
+  var at=drawSel>=0?drawSel+1:state.verts.length;
+  state.verts.splice(at,0,{x:p.x,y:p.y,b:0});drawSel=at;state.chosen=null;markDirty();renderDrawEditor();compute();
+});
+$('#drawing').addEventListener('pointermove',function(e){if(!drag)return;var p=svgPoint(e);if(!p)return;var q=state.verts[drag.i];if(q.x===p.x&&q.y===p.y)return;q.x=p.x;q.y=p.y;drag.moved=true;
+  // light redraw: outline only while dragging
+  var ex=expand(state.verts);$('#drawing').innerHTML=buildSVG(ex,null,current.S,themeColors(),{edit:true,verts:state.verts,sel:drawSel,sideNums:true})});
+window.addEventListener('pointerup',function(){if(!drag)return;var moved=drag.moved;drag=null;if(moved){state.chosen=null;markDirty();renderDrawEditor();compute()}});
+document.addEventListener('keydown',function(e){if(state.mode==='draw'&&drawSel>=0&&(e.key==='Delete'||e.key==='Backspace')&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){state.verts.splice(drawSel,1);drawSel=-1;renderDrawEditor();markDirty();compute()}});
+if(window.matchMedia){var mq=matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',function(){renderAll()})}
+
+/* ------------------------------------------------------------------ saving (db) */
+var db=null,dirty=false,saving=false,saved=[];
+function markDirty(){dirty=true;setStatus(state.id?'Unsaved changes':'Not saved','warn')}
+function setStatus(t,c){var s=$('#saveStatus');s.textContent=t;s.className='status'+(c?' '+c:'')}
+function snapshot(){
+  var L=current.L;
+  return {name:(state.name||'Untitled plot').slice(0,120),mode:state.mode,preset:state.preset,walk:state.walk,verts:state.mode==='draw'?state.verts:currentVerts(),
+    settings:state.settings,chosen:state.chosen,
+    totals:{trees:L?L.total:0,rows:L?L.rows.length:0,poles:L?L.poles:0,anchors:L?L.anchors:0,area:current.ex?Math.round(current.ex.area):0},
+    updatedAt:new Date().toISOString()};
+}
+function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+async function save(asCopy){
+  if(!db){toast('Saving isn’t available in this view.');return}
+  if(saving)return;saving=true;setStatus('Saving…');
+  try{
+    var id=(!state.id||asCopy)?newId():state.id;var data=snapshot();if(asCopy){data.name=(data.name+' (copy)').slice(0,120);state.name=data.name;$('#plotName').value=data.name}
+    await db.collection('plots').doc(id).set(data);
+    state.id=id;dirty=false;setStatus('Saved','ok');toast('Saved “'+data.name+'”');
+  }catch(err){setStatus(err&&err.code==='quota_exceeded'?'Storage full: delete old plots':'Couldn’t save','err');
+    if(err&&err.code==='invalid_argument'){toast('Couldn’t save the plot.')}}
+  finally{saving=false}
+}
+function loadPlot(id){
+  var d=saved.find(function(x){return x.id===id});if(!d)return;var p=d.data;
+  state.id=id;state.name=p.name||'Untitled plot';$('#plotName').value=state.name;
+  state.settings=Object.assign({},DEFAULT_SETTINGS,p.settings||{});
+  state.preset=p.preset||state.preset;state.walk=p.walk||null;state.verts=p.verts||[];state.chosen=p.chosen!=null?p.chosen:null;
+  state.mode=p.mode||'draw';
+  if(state.mode==='walk'&&!state.walk) state.walk=closeWalk(state.verts);
+  document.querySelectorAll('#modeSeg button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.mode===state.mode)});
+  ['preset','walk','draw'].forEach(function(k){$('#m-'+k).hidden=k!==state.mode});
+  if(state.mode==='preset')renderPresetEditor();if(state.mode==='walk')renderWalkEditor();if(state.mode==='draw'){drawSel=-1;renderDrawEditor()}
+  renderSettings();dirty=false;setStatus('Saved','ok');compute();renderSaved();
+  document.querySelector('[data-tab="shape"]').click();
+  toast('Opened “'+state.name+'”');
+}
+var pendingDel=null;
+function renderSaved(){
+  var el=$('#savedList');
+  if(!db){el.innerHTML='<div class="empty">This browser is blocking storage, so plots can’t be saved here. You can still plan and download layouts.</div>';return}
+  if(!saved.length){el.innerHTML='<div class="empty">No saved plots yet. Set up a plot and press Save.</div>';return}
+  el.innerHTML=saved.map(function(s){var p=s.data,t=p.totals||{};var dt=p.updatedAt?new Date(p.updatedAt):null;
+    return '<div class="sv'+(s.id===state.id?' cur':'')+'"><b title="'+esc(p.name||'')+'">'+esc(p.name||'Untitled plot')+'</b><span class="meta">'+(t.trees||0)+' trees · '+(t.rows||0)+' rows · '+(t.area?round(t.area/KANAL,2)+' kanal':'')+(dt?' · '+dt.toLocaleDateString(undefined,{day:'numeric',month:'short'}):'')+'</span>'+
+    '<span class="acts"><button class="btn sm" type="button" data-open="'+esc(s.id)+'">Open</button><button class="btn sm danger" type="button" data-del="'+esc(s.id)+'">'+(pendingDel===s.id?'Confirm':'Delete')+'</button></span></div>'}).join('');
+}
+$('#savedList').addEventListener('click',async function(e){
+  var o=e.target.closest('[data-open]');if(o){if(dirty&&!confirmLeave())return;loadPlot(o.dataset.open);return}
+  var d=e.target.closest('[data-del]');if(!d)return;
+  if(pendingDel!==d.dataset.del){pendingDel=d.dataset.del;renderSaved();setTimeout(function(){if(pendingDel===d.dataset.del){pendingDel=null;renderSaved()}},4000);return}
+  var id=pendingDel;pendingDel=null;
+  try{await db.collection('plots').doc(id).delete();if(state.id===id){state.id=null;markDirty()}toast('Plot deleted')}catch(err){toast('Couldn’t delete that plot.')}
+});
+var leaveArmed=false;
+function confirmLeave(){if(leaveArmed){leaveArmed=false;return true}leaveArmed=true;toast('You have unsaved changes. Click again to continue without saving.');setTimeout(function(){leaveArmed=false},4000);return false}
+$('#btnSave').addEventListener('click',function(){save(false)});
+$('#btnSaveAs').addEventListener('click',function(){save(true)});
+$('#btnNew').addEventListener('click',function(){if(dirty&&!confirmLeave())return;
+  state.id=null;state.name='New plot';$('#plotName').value=state.name;state.mode='preset';state.preset={type:'rect',p:{W:90,H:80},mirror:false};state.chosen=null;
+  setMode('preset');setStatus('Not saved');renderSaved();$('#plotName').focus();$('#plotName').select()});
+
+(function initLocalStore(){
+  // Plots are kept in this browser's local storage. Export / Import moves them between devices.
+  var KEY='orchard-planner.plots.v1',subs=[];
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(_){return {}}}
+  function write(o){localStorage.setItem(KEY,JSON.stringify(o))}
+  function snap(){var o=read();var docs=Object.keys(o).map(function(k){return {id:k,data:function(){return o[k]}}});
+    docs.sort(function(a,b){return String(b.data().updatedAt||'').localeCompare(String(a.data().updatedAt||''))});return {docs:docs}}
+  function emit(){var s=snap();subs.forEach(function(f){f(s)})}
+  var coll={orderBy:function(){return coll},onSnapshot:function(fn){subs.push(fn);fn(snap());return function(){}},
+    doc:function(id){return {set:function(d){return new Promise(function(res,rej){try{var o=read();o[id]=d;write(o);emit();res()}catch(e){rej({code:'quota_exceeded'})}})},
+      delete:function(){var o=read();delete o[id];write(o);emit();return Promise.resolve()}}}};
+  try{localStorage.setItem(KEY+'.test','1');localStorage.removeItem(KEY+'.test');db={collection:function(){return coll}}}
+  catch(_){db=null;['#btnSave','#btnSaveAs'].forEach(function(s){$(s).disabled=true;$(s).title='This browser is blocking storage'});renderSaved();return}
+  coll.onSnapshot(function(sn){saved=sn.docs.map(function(d){return {id:d.id,data:d.data()}});renderSaved()});
+  window.addEventListener('storage',function(e){if(e.key===KEY)emit()});
+  $('#btnExportAll').addEventListener('click',function(){var o=read();if(!Object.keys(o).length){toast('No saved plots to export yet.');return}
+    offer('orchard-plots.json',JSON.stringify({app:'orchard-planner',version:1,plots:o},null,2))});
+  $('#importFile').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var r=new FileReader();
+    r.onload=function(){try{var j=JSON.parse(r.result);var pl=j.plots||j;var o=read(),n=0;Object.keys(pl).forEach(function(k){var p=pl[k];if(p&&typeof p==='object'&&(p.verts||p.preset)){o[k]=p;n++}});
+      write(o);emit();toast(n?('Imported '+n+' plot'+(n>1?'s':'')):'No plots found in that file.')}catch(_){toast('That file isn’t a plots export.')}e.target.value=''};r.readAsText(f)});
+})();
+
+/* ------------------------------------------------------------------ exports */
+var dl={save:function(r){return new Promise(function(res){var blob=r.data instanceof Blob?r.data:new Blob([r.data],{type:'application/octet-stream'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=r.filename;document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);a.remove()},1500);res({status:'saved'})})}};
+function fileBase(){return (state.name||'orchard-plan').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').toLowerCase()||'orchard-plan'}
+async function offer(filename,data){if(!dl){toast('Downloads aren’t available in this view.');return}
+  try{await dl.save({filename:filename,data:data});toast('Saved '+filename)}catch(err){if(err&&err.code!=='declined')toast('Couldn’t save the file ('+(err.code||'error')+').')}}
+function exportSVG(){return buildSVG(current.ex,current.L,current.S,LIGHT,{sideNums:state.mode!=='preset'})}
+$('#exSvg').addEventListener('click',function(){if(!current.ex)return;offer(fileBase()+'.svg',exportSVG())});
+$('#exCsv').addEventListener('click',function(){var rows=rowsForTable();if(!rows.length)return;
+  var lines=[['Row','Offset (ft)','Length (ft)','Start anchor','First tree','Last tree','End anchor','Poles at','Trees'].join(',')];
+  rows.forEach(function(r){lines.push([r.row,fmt(r.offset),fmt(round(r.len,2)),r.sa!=null?fmt(r.sa):'',fmt(r.first),fmt(r.last),r.ea!=null?fmt(r.ea):'','"'+r.poles.map(fmt).join(' ')+'"',r.n].join(','))});
+  offer(fileBase()+'.csv',lines.join('\n'))});
+function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=function(){rej(new Error('load'))};document.head.appendChild(s)})}
+function svgToPng(svg,scale){return new Promise(function(res,rej){var img=new Image();var blob=new Blob([svg],{type:'image/svg+xml'});var url=URL.createObjectURL(blob);
+  img.onload=function(){var c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);var g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);res({data:c.toDataURL('image/jpeg',0.9),w:img.width,h:img.height})};
+  img.onerror=function(){URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url})}
+$('#exPdf').addEventListener('click',async function(){
+  if(!current.ex||!current.L){toast('Nothing to export yet.');return}
+  var b=$('#exPdf');b.disabled=true;b.textContent='Preparing…';
+  try{
+    if(!window.jspdf){await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');await loadScript('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js')}
+    if(!window.jspdf.jsPDF.API.autoTable&&typeof window.applyPlugin==='function') window.applyPlugin(window.jspdf.jsPDF);
+    var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+    var L=current.L,S=current.S,ex=current.ex,W=210,M=14;
+    doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text(state.name||'Orchard plan',M,18);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90);
+    doc.text('Orchard Planner · '+new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}),M,24);
+    doc.setTextColor(20);doc.setFontSize(10);
+    var line1=L.total+' trees · '+L.rows.length+' rows · '+L.poles+' poles · '+L.anchors+' anchors · '+Math.round(ex.area).toLocaleString('en-IN')+' sq ft ('+round(ex.area/KANAL,2)+' kanal)';
+    var line2='Rows '+S.row+' ft apart, trees '+S.plant+' ft apart · side gap '+S.side+' ft · tiller gap '+S.tiller+' ft · anchors: '+(S.anchors==='both'?'both ends':S.anchors==='start'?'start end':'none')+(S.anchors!=='none'?' ('+S.agap+' ft'+(S.treeGap?', 1 tree in gap':'')+')':'')+' · middle poles every '+fmt(L.per*S.plant)+' ft, centred and lined up';
+    doc.setFont('helvetica','bold');doc.text(line1,M,32);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text(doc.splitTextToSize(line2,W-2*M),M,37);
+    var png=await svgToPng(exportSVG(),2.5);
+    var maxW=W-2*M,maxH=170,r=Math.min(maxW/png.w,maxH/png.h),iw=png.w*r,ih=png.h*r;
+    doc.addImage(png.data,'JPEG',(W-iw)/2,44,iw,ih);
+    var rows=rowsForTable();var hasA=rows.some(function(x){return x.sa!=null}),hasE=rows.some(function(x){return x.ea!=null});
+    var head=['Row','Offset','Length'].concat(hasA?['Start anchor']:[]).concat(['First tree','Last tree']).concat(hasE?['End anchor']:[]).concat(['Poles at','Trees']);
+    var body=rows.map(function(x){return [x.row,fmt(x.offset),fmt(round(x.len,2))].concat(hasA?[x.sa!=null?fmt(x.sa):'–']:[]).concat([fmt(x.first),fmt(x.last)]).concat(hasE?[x.ea!=null?fmt(x.ea):'–']:[]).concat([x.poles.map(fmt).join(', '),x.n])});
+    doc.autoTable({startY:44+ih+6,head:[head],body:body,foot:[[{content:'Total · '+L.poles+' poles · '+L.anchors+' anchors',colSpan:head.length-1},L.total]],
+      styles:{fontSize:7.5,cellPadding:1.4},headStyles:{fillColor:[30,90,52]},footStyles:{fillColor:[234,240,228],textColor:20},columnStyles:{[head.length-2]:{cellWidth:62}},margin:{left:M,right:M}});
+    var pages=doc.getNumberOfPages();for(var i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7.5);doc.setTextColor(120);doc.text('Distances in feet. Offsets from the plot edge the rows run along; positions along each row from where it meets the boundary at its start end. Page '+i+' of '+pages,M,290)}
+    await offer(fileBase()+'.pdf',doc.output('blob'));
+  }catch(err){console.warn('pdf',err);toast('Couldn’t build the PDF. Check your connection and try again.')}
+  finally{b.disabled=false;b.textContent='Download PDF'}
+});
+
+/* ------------------------------------------------------------------ start */
+renderPresetEditor();renderSettings();compute();
+})();
+</script>
+
+</body>
+</html>
